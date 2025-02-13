@@ -1,0 +1,105 @@
+# The ci-cd.yml file is used to define the Continuous Integration (CI) pipeline 
+# for the project. It tells tools like GitHub Actions what steps to take automatically when you push changes to your code.
+
+# In simple terms, the ci.yml file:
+
+# Runs Tests: It makes sure your code works correctly by running tests whenever you push code.
+# Checks Code Quality: It can check your code for errors or style issues (linting).
+# Builds Your Project: It can build your project (like creating a Docker image).
+# Automates Repetitive Tasks: It saves you from doing these steps manually each time.
+
+
+# uses: actions/checkout@v2 is a predefined action that automatically checks out your repository's code.
+# This means it fetches or downloads the code from your repository so that the CI pipeline can access the files and run tasks (like testing, building, or linting).
+# Without this step, the virtual machine wouldn’t have access to your repository’s code, so this action ensures your project files are available during the pipeline run.
+
+name: CI/CD Pipeline for Fullstack RAG Chatbot # This is the name of the pipeline which will appear in Github Actions Tab
+
+on:
+  push:
+    branches:
+      - main  # Triggers when code is pushed to the main branch
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest # this job will run on a Github VM with ubuntu. (there is a free-tier available)
+
+    steps:
+    # Step 1: Checkout code from GitHub repository
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    # Step 2: Set up Node.js (for both frontend and backend)
+    - name: Set up Node.js for frontend and backend
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16'
+
+    # Step 3: Set environment variables for the frontend (Firebase)
+    - name: Set Firebase environment variables for frontend
+      run: |
+        echo "REACT_APP_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> $GITHUB_ENV
+        echo "REACT_APP_FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN }}" >> $GITHUB_ENV
+        echo "REACT_APP_FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}" >> $GITHUB_ENV
+        echo "REACT_APP_FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}" >> $GITHUB_ENV
+        echo "REACT_APP_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}" >> $GITHUB_ENV
+        echo "REACT_APP_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }}" >> $GITHUB_ENV
+        echo "REACT_APP_FIREBASE_MEASUREMENT_ID=${{ secrets.FIREBASE_MEASUREMENT_ID }}" >> $GITHUB_ENV
+
+    # Step 4: Install frontend dependencies
+    - name: Install frontend dependencies
+      working-directory: ./rag-pdf-chatbot-frontend  # Correct folder for frontend
+      run: npm install
+
+    # Step 5: Build the frontend
+    - name: Build frontend
+      working-directory: ./rag-pdf-chatbot-frontend
+      run: npm run build
+
+    # Backend Steps
+    # Step 6: Set up Python for backend
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'  # Use your Python version
+
+    # Step 7: Install backend dependencies from requirements.txt
+    - name: Install backend dependencies
+      working-directory: ./rag-pdf-chatbot-backend  # Adjust path if needed
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    # Step 8: Set environment variables for the backend
+    - name: Set environment variables for backend
+      run: |
+        echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
+        echo "PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }}" >> $GITHUB_ENV
+
+    # Step 9: Run backend tests
+    - name: Test backend
+      working-directory: ./rag-pdf-chatbot-backend
+      run: pytest  # Assuming you're using pytest for testing
+
+    # Docker Build and Push Steps
+    # Step 10: Set up Docker Buildx
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    # Step 11: Log in to Docker Hub # Assuming you have Docker Hub credentials stored as GitHub secrets
+    - name: Log in to Docker Hub
+      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+    # Step 12: Build Docker images for frontend and backend
+    - name: Build Docker image for frontend
+      run: docker build -t jayantraj07/rag-pdf-chatbot-frontend ./rag-pdf-chatbot-frontend
+
+    - name: Build Docker image for backend
+      run: docker build -t jayantraj07/rag-pdf-chatbot-backend ./rag-pdf-chatbot-backend
+
+    # Step 13: Push Docker images to Docker Hub
+    - name: Push Docker image for frontend
+      run: docker push jayantraj07/rag-pdf-chatbot-frontend
+
+    - name: Push Docker image for backend
+      run: docker push jayantraj07/rag-pdf-chatbot-backend
