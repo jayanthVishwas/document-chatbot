@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
 import { MainContainer, ChatContainer, MessageList, Message, MessageInput, TypingIndicator } from '@chatscope/chat-ui-kit-react';
 
@@ -17,10 +17,10 @@ const Chatbot = () => {
   const [fileName, setFileName] = useState('');
   const ws = useRef(null);
 
-  // WebSocket Connection Handler
-  const connectWebSocket = () => {
+  // Wrap the function in useCallback to keep its reference stable
+  const connectWebSocket = useCallback(() => {
     console.log("Attempting to connect WebSocket...");
-    ws.current = new WebSocket("ws://localhost:8000/ws");
+    ws.current = new WebSocket("ws://3.82.47.188:8000/ws");
 
     ws.current.onopen = () => console.log("✅ WebSocket connection established.");
 
@@ -51,12 +51,12 @@ const Chatbot = () => {
         setTimeout(connectWebSocket, 5000);
       }
     };
-  };
+  }, []); // No dependencies needed as we're not using any external variables
 
   useEffect(() => {
     connectWebSocket();
     return () => ws.current?.close();
-  }, []);
+  }, [connectWebSocket]);
 
   // Handle Sending Messages
   const handleSend = async (message) => {
@@ -103,7 +103,7 @@ const Chatbot = () => {
     });
 
     try {
-      const response = await fetch("http://localhost:8000/upload_pdfs/", {
+      const response = await fetch("http://3.82.47.188:8000/upload_pdfs/", {
         method: "POST",
         body: formData,
       });

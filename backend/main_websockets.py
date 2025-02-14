@@ -24,7 +24,9 @@ if not pinecone_api_key:
 
 # Initialize OpenAI API
 import openai
-openai.api_key = openai_api_key
+from openai import OpenAI
+
+client = OpenAI(api_key=openai_api_key)
 
 # Initialize SentenceTransformer for embeddings
 model = SentenceTransformer('all-MiniLM-L6-v2')  # ✅ Uses 384D embeddings (MiniLM)
@@ -50,7 +52,7 @@ app = FastAPI(title="Document Chatbot Backend with Pinecone and WebSockets")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Match frontend origin
+    allow_origins=["http://3.82.47.188:3000"],  # Match frontend origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -100,7 +102,6 @@ async def websocket_endpoint(websocket: WebSocket):
     """Handle WebSocket connections for real-time question answering."""
     await websocket.accept()
     try:
-        # ✅ **Check Pinecone Index for Documents**
         total_vectors = index.describe_index_stats()
         print(f"📌 Pinecone Index Stats: {total_vectors}")
 
@@ -109,63 +110,66 @@ async def websocket_endpoint(websocket: WebSocket):
             return
 
         while True:
-            data = await websocket.receive_text()
-            query_request = json.loads(data)
-            query = query_request.get("query", "").strip()
-            print(f"🛠️ Received query: {query}")  # Debugging statement
-
-            if not query:
-                await websocket.send_text(json.dumps({"response": "Query cannot be empty."}))
-                continue
-
-            # ✅ **Encode query & match embedding dimension**
-            query_embedding = model.encode(query, normalize_embeddings=True).tolist()
-            print(f"📌 Query Embedding Shape: {len(query_embedding)}")  # Should be 384
-
-            query_response = index.query(vector=query_embedding, top_k=5, include_metadata=True)
-
-            if not query_response["matches"]:
-                print(f"⚠️ No matches found in Pinecone.")
-                await websocket.send_text(json.dumps({"response": "No relevant context found."}))
-                continue
-
-            # ✅ **Retrieve the most relevant document chunks**
-            top_chunks = [match["metadata"]["chunk"] for match in query_response["matches"] if "chunk" in match["metadata"]]
-            print(f"📖 Retrieved Context Chunks: {top_chunks}")
-
-            if not top_chunks:
-                await websocket.send_text(json.dumps({"response": "No relevant context found."}))
-                continue
-
-            top_context = "\n".join(top_chunks)[:4000]  # Truncate if too long
-
-            # ✅ **Generate answer using OpenAI**
-            prompt = f"Context:\n{top_context}\n\nQuestion: {query}\nAnswer:"
             try:
+                data = await websocket.receive_text()
+                query_request = json.loads(data)
+                query = query_request.get("query", "").strip()
+                print(f"🛠️ Received query: {query}")  # Debugging statement
 
-                response = openai.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant that answers questions based on the provided context."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=150,
-                temperature=0.7
-            )
+                if not query:
+                    await websocket.send_text(json.dumps({"response": "Query cannot be empty."}))
+                    continue
 
-                answer = response.choices[0].message.content.strip()
+                query_embedding = model.encode(query, normalize_embeddings=True).tolist()
+                print(f"📌 Query Embedding Shape: {len(query_embedding)}")  # Should be 384
 
+                query_response = index.query(vector=query_embedding, top_k=5, include_metadata=True)
+
+                if not query_response["matches"]:
+                    print(f"⚠️ No matches found in Pinecone.")
+                    await websocket.send_text(json.dumps({"response": "No relevant context found."}))
+                    continue
+
+                top_chunks = [match["metadata"]["chunk"] for match in query_response["matches"] if "chunk" in match["metadata"]]
+                print(f"📖 Retrieved Context Chunks: {top_chunks}")
+
+                if not top_chunks:
+                    await websocket.send_text(json.dumps({"response": "No relevant context found."}))
+                    continue
+
+                top_context = "\n".join(top_chunks)[:4000]  # Truncate if too long
+
+                prompt = f"Context:\n{top_context}\n\nQuestion: {query}\nAnswer:"
+                try:
+                    response = client.chat.completions.create(model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "You are a helpful assistant that answers questions based on the provided context."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=150,
+                    temperature=0.7)
+                    answer = response.choices[0].message.content.strip()                          
+                except Exception as e:
+                    answer = f"Error calling OpenAI API: {e}"
+
+                await websocket.send_text(json.dumps({"response": answer}))
+
+            except WebSocketDisconnect:
+                print("⚠️ WebSocket client disconnected")
+                break  # Exit the loop on disconnection
             except Exception as e:
-                answer = f"Error calling OpenAI API: {e}"
+                print(f"❌ Unexpected WebSocket error: {e}")
+                await websocket.send_text(json.dumps({"response": f"An error occurred: {e}"}))
+                break  # Exit the loop on unexpected errors
 
-            await websocket.send_text(json.dumps({"response": answer}))
-
-    except WebSocketDisconnect:
-        print("⚠️ WebSocket client disconnected")
     except Exception as e:
-        print(f"❌ Unexpected WebSocket error: {e}")
+        print(f"❌ Error in WebSocket connection: {e}")
     finally:
-        await websocket.close()
+        try:
+            await websocket.close()
+        except RuntimeError as e:
+            # This error is expected if the connection was already closed
+            print("WebSocket already closed. Skipping close call.")
 
 
 # --- Endpoint: Upload Document ---
