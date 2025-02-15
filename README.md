@@ -17,19 +17,21 @@ This repository contains two main folders:
 
 ## 1. Clone the repository
 ```bash
-git clone https://github.com/jayanthVishwas/document-chatbot.git <br>
+git clone https://github.com/jayanthVishwas/document-chatbot.git 
 ```
 
 ## 2. Create a .env file in the root directory and add API keys for Open API, Pinecone and Upstash Redis
-
+```bash
 PINECONE_API_KEY=your_pinecone_api_key <br>
 OPENAI_API_KEY=your_openai_api_key <br>
 UPSTASH_REDIS_ENDPOINT=your_redis_endpoint <br>
 UPSTASH_REDIS_TOKEN=your_redis_token <br>
+```
 
 ## 3. Run Docker Compose
    ```bash
    docker-compose up --build
+   ```
 
 **The application should now be running on http://localhost:3000.** <br>
 
@@ -51,21 +53,26 @@ This Terraform configuration creates a simple AWS setup that includes:
 1. **Change directory** to `infra`  
    ```bash
    cd infra
+   ```
 
-2. Change the directory to infra
-3. Initialize Terraform: 
+2. Initialize Terraform: 
    ```bash
    terraform init
-4. Review the plan: 
+   ```
+
+3. Review the plan: 
    ```bash
    terraform plan
-5. Apply the configuration to create resources in AWS: 
+   ```
+   
+4. Apply the configuration to create resources in AWS: 
    ```bash
    terraform apply
+   ```
 
-6. To clean up (and stop incurring AWS costs), run: 
+5. To clean up (and stop incurring AWS costs), run: 
    ```bash
    terraform destroy
-
+   ```
 
 
