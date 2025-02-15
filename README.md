@@ -18,6 +18,7 @@ This repository contains two main folders:
 ## 1. Clone the repository
 ```bash
 git clone https://github.com/jayanthVishwas/document-chatbot.git <br>
+```
 
 ## 2. Create a .env file in the root directory and add API keys for Open API, Pinecone and Upstash Redis
 
