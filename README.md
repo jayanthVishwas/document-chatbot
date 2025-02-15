@@ -22,10 +22,10 @@ git clone https://github.com/jayanthVishwas/document-chatbot.git
 
 ## 2. Create a .env file in the root directory and add API keys for Open API, Pinecone and Upstash Redis
 ```bash
-PINECONE_API_KEY=your_pinecone_api_key <br>
-OPENAI_API_KEY=your_openai_api_key <br>
-UPSTASH_REDIS_ENDPOINT=your_redis_endpoint <br>
-UPSTASH_REDIS_TOKEN=your_redis_token <br>
+PINECONE_API_KEY=your_pinecone_api_key 
+OPENAI_API_KEY=your_openai_api_key 
+UPSTASH_REDIS_ENDPOINT=your_redis_endpoint 
+UPSTASH_REDIS_TOKEN=your_redis_token 
 ```
 
 ## 3. Run Docker Compose
@@ -64,7 +64,7 @@ This Terraform configuration creates a simple AWS setup that includes:
    ```bash
    terraform plan
    ```
-   
+
 4. Apply the configuration to create resources in AWS: 
    ```bash
    terraform apply
