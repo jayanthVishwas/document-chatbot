@@ -9,6 +9,7 @@ const Home = () => {
   return (
     <div className="home-page">
       <div className="text-2xl font-italic pt-14 text-center" style={{ fontFamily: 'Helvetica' }}>
+        <div className='heading'><h1>Docu.Chat</h1></div>
         <Typewriter text={`Hi, I'm here to decode life's mysteries... or just answer your PDF questions!`} />
       </div>
       <div className="chatbot-container mt-6">

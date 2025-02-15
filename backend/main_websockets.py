@@ -66,7 +66,7 @@ app = FastAPI(title="Document Chatbot Backend with Pinecone and WebSockets")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://3.82.47.188:3000"],  # Match frontend origin
+    allow_origins=["http://localhost:3000"],  # Match frontend origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

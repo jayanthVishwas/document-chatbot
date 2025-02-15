@@ -136,7 +136,7 @@ const Chatbot = () => {
         <label 
           htmlFor="file-upload" 
           style={{ 
-            backgroundColor: "#007bff", 
+            backgroundColor: "#5c45db", 
             color: "white", 
             border: "none", 
             padding: "10px 20px", 
@@ -153,14 +153,14 @@ const Chatbot = () => {
         <button 
           onClick={handleFileUpload} 
           style={{ 
-            backgroundColor: "#007bff", 
+            backgroundColor: "#5c45db", 
             color: "white", 
             border: "none", 
             padding: "10px 20px", 
             borderRadius: "4px", 
             cursor: "pointer",
             width: "150px",
-            marginTop: "20px"
+            marginTop: "20px",
           }}
         >
           Submit
