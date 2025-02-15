@@ -2,8 +2,8 @@ version: '3.8'
 
 services:
   backend:
-    build: ./rag-pdf-chatbot-backend
-    container_name: chatbot-backend
+    build: ./backend
+    container_name: backend
     ports:
       - "8000:8000"
     volumes:
@@ -12,8 +12,8 @@ services:
       - .env  # ✅ Load API keys from .env
 
   frontend:
-    build: ./rag-pdf-chatbot-frontend
-    container_name: chatbot-frontend
+    build: ./frontend
+    container_name: frontend
     ports:
       - "3000:3000"
 

@@ -20,19 +20,17 @@ const Chatbot = () => {
   // Wrap the function in useCallback to keep its reference stable
   const connectWebSocket = useCallback(() => {
     console.log("Attempting to connect WebSocket...");
-    ws.current = new WebSocket("ws://localhost:8000/ws");
+    ws.current = new WebSocket("ws://3.82.47.188:8000/ws");
 
     ws.current.onopen = () => console.log("✅ WebSocket connection established.");
 
     ws.current.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log("data from backend:", data);
         setMessages((prevMessages) => [
           ...prevMessages,
           {
             message: data.response,
-            sources: data.source || [],
             sentTime: "just now",
             sender: "ChatBot",
             style: { backgroundColor: "green" }
@@ -105,7 +103,7 @@ const Chatbot = () => {
     });
 
     try {
-      const response = await fetch("http://localhost/upload_pdfs/", {
+      const response = await fetch("http://3.82.47.188:8000/upload_pdfs/", {
         method: "POST",
         body: formData,
       });
@@ -178,30 +176,16 @@ const Chatbot = () => {
                 typingIndicator={isTyping ? <TypingIndicator content="ChatBot is typing..." /> : null}
               >
                 {messages.map((message, i) => (
-                  <div key={i}>
-                    <Message 
-                      model={{ 
-                        message: message.message, 
-                        sentTime: message.sentTime, 
-                        sender: message.sender, 
-                        style: message.style 
-                      }} 
-                      className={message.sender === "user" ? "user-message" : "chatbot-message"} 
-                    />
-                    {message.sources && message.sources.length > 0 && (
-                      <div 
-                      style={{ 
-                        fontSize: '0.8em', 
-                        color: '#555', 
-                        marginTop: '4px', 
-                        paddingLeft: message.sender === "ChatBot" ? "60px" : "0",
-                        border: '1px solid red' // temporary border for debugging
-                      }}
-                      >
-                        Sources: {message.sources.join(', ')}
-                      </div>
-                    )}
-                  </div>
+                  <Message 
+                    key={i} 
+                    model={{ 
+                      message: message.message, 
+                      sentTime: message.sentTime, 
+                      sender: message.sender, 
+                      style: message.style 
+                    }} 
+                    className={message.sender === "user" ? "user-message" : "chatbot-message"} 
+                  />
                 ))}
               </MessageList>
               <MessageInput placeholder="Your curiosity is my command..." onSend={handleSend} attachButton={false} />

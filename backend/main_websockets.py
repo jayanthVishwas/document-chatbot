@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, UploadFile, File, HTTPException
 from pydantic import BaseModel
 from PyPDF2 import PdfReader
+import redis.asyncio as redis
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.websockets import WebSocketDisconnect
@@ -18,9 +19,13 @@ load_dotenv()
 # Retrieve API keys
 pinecone_api_key = os.getenv("PINECONE_API_KEY")
 openai_api_key = os.getenv("OPENAI_API_KEY")
+upstash_redis_endpoint = os.getenv("UPSTASH_REDIS_ENDPOINT")
+upstash_redis_token = os.getenv("UPSTASH_REDIS_TOKEN")
 
 if not pinecone_api_key:
     raise Exception("PINECONE_API_KEY is missing. Set it in your environment.")
+
+
 
 # Initialize OpenAI API
 import openai
@@ -34,6 +39,15 @@ embedding_dim = model.get_sentence_embedding_dimension()  # e.g., 384
 
 # Initialize Pinecone
 pc = Pinecone(api_key=pinecone_api_key)
+
+# Create an async Redis client
+cache = redis.Redis(
+    host=upstash_redis_endpoint,
+    port=6379,  # Default Redis port
+    password=upstash_redis_token,
+    ssl=True,  # Upstash requires SSL
+    decode_responses=True  # Decode responses to strings
+)
 
 # Create a Pinecone index if it doesn't exist
 index_name = "document-chatbot-collection"
@@ -119,27 +133,67 @@ async def websocket_endpoint(websocket: WebSocket):
                 if not query:
                     await websocket.send_text(json.dumps({"response": "Query cannot be empty."}))
                     continue
+                
+                cache_key = f"query:{query}"
+                try:
+                    print("cache_key", cache_key)
+                    cached_response = await cache.get(cache_key)
+                    print("cached_response", cached_response)
+                except Exception as e:
+                    print("Redis get error:", e)
+                    # Optionally, handle the error (e.g., by continuing without caching)
+                    cached_response = None
+
+                if cached_response:
+                    print("🔄 Returning cached response")
+                    await websocket.send_text(cached_response)
+                    continue
 
                 query_embedding = model.encode(query, normalize_embeddings=True).tolist()
                 print(f"📌 Query Embedding Shape: {len(query_embedding)}")  # Should be 384
 
                 query_response = index.query(vector=query_embedding, top_k=5, include_metadata=True)
+                print("query response:", query_response)
 
                 if not query_response["matches"]:
-                    print(f"⚠️ No matches found in Pinecone.")
                     await websocket.send_text(json.dumps({"response": "No relevant context found."}))
                     continue
+                
+                # Define a threshold for relevance
+                RELEVANCE_THRESHOLD = 0.3
+                max_score = max(match.get("score", 0) for match in query_response["matches"])
+                top_chunks=[]
+                if max_score < RELEVANCE_THRESHOLD:
+                    top_context = ""
+                else:
+                    top_chunks = [
+                        match["metadata"]["chunk"] 
+                        for match in query_response["matches"] 
+                        if "chunk" in match["metadata"]
+                    ]
+                    top_context = "\n".join(top_chunks)[:4000]  # Truncate if too long
 
-                top_chunks = [match["metadata"]["chunk"] for match in query_response["matches"] if "chunk" in match["metadata"]]
+                # Build the prompt based on whether context is available
+                if top_context:
+                    prompt = f"Context:\n{top_context}\n\nQuestion: {query}\nAnswer:"
+                else:
+                    prompt = f"Question: {query}\nAnswer:"
+
+                # if not query_response["matches"]:
+                #     print(f"⚠️ No matches found in Pinecone.")
+                #     await websocket.send_text(json.dumps({"response": "No relevant context found."}))
+                #     continue
+
+                # top_chunks = [match["metadata"]["chunk"] for match in query_response["matches"] if "chunk" in match["metadata"]]
                 print(f"📖 Retrieved Context Chunks: {top_chunks}")
 
-                if not top_chunks:
-                    await websocket.send_text(json.dumps({"response": "No relevant context found."}))
-                    continue
+                # if not top_chunks:
+                #     await websocket.send_text(json.dumps({"response": "No relevant context found."}))
+                #     continue
 
-                top_context = "\n".join(top_chunks)[:4000]  # Truncate if too long
+                # top_context = "\n".join(top_chunks)[:4000]  # Truncate if too long
 
-                prompt = f"Context:\n{top_context}\n\nQuestion: {query}\nAnswer:"
+                # prompt = f"Context:\n{top_context}\n\nQuestion: {query}\nAnswer:"
                 try:
                     response = client.chat.completions.create(model="gpt-3.5-turbo",
                     messages=[
@@ -152,7 +206,14 @@ async def websocket_endpoint(websocket: WebSocket):
                 except Exception as e:
                     answer = f"Error calling OpenAI API: {e}"
 
-                await websocket.send_text(json.dumps({"response": answer}))
+                response_data = {
+                    "response": answer,
+                    "source": [top_context[:500]] if top_context else []
+                }
+                response_payload = json.dumps(response_data)
+                await cache.set(cache_key, response_payload, ex=3600)
+                await websocket.send_text(response_payload)
+                
 
             except WebSocketDisconnect:
                 print("⚠️ WebSocket client disconnected")
