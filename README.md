@@ -2,6 +2,8 @@
 
 A full-stack chatbot application that leverages React for the frontend and Python (FastAPI) for the backend with WebSocket support for real-time communication. The chatbot uses Pinecone for vector storage and OpenAI for generating responses based on user queries and PDFs and Redis for caching prompts and responses.
 
+Application Hosted: http://3.82.47.188:3000/
+
 # Repository Structure
 
 This repository contains two main folders:
