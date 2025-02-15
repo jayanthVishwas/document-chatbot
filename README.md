@@ -15,17 +15,20 @@ This repository contains two main folders:
 
 # Installation Instructions
 
-# 1. Clone the repository
+## 1. Clone the repository
+```bash
 git clone https://github.com/jayanthVishwas/document-chatbot.git <br>
 
-# 2. Create a .env file in the root directory and add API keys for Open API, Pinecone and Upstash Redis
-PINECONE_API_KEY=your_pinecone_api_key
-OPENAI_API_KEY=your_openai_api_key
-UPSTASH_REDIS_ENDPOINT=your_redis_endpoint
-UPSTASH_REDIS_TOKEN=your_redis_token
+## 2. Create a .env file in the root directory and add API keys for Open API, Pinecone and Upstash Redis
 
-# 3. Run Docker Compose
-docker-compose up --build
+PINECONE_API_KEY=your_pinecone_api_key <br>
+OPENAI_API_KEY=your_openai_api_key <br>
+UPSTASH_REDIS_ENDPOINT=your_redis_endpoint <br>
+UPSTASH_REDIS_TOKEN=your_redis_token <br>
+
+## 3. Run Docker Compose
+   ```bash
+   docker-compose up --build
 
 **The application should now be running on http://localhost:3000.** <br>
 
@@ -36,7 +39,7 @@ This Terraform configuration creates a simple AWS setup that includes:
 - An Internet Gateway attached to the VPC
 - A Public Subnet with auto-assign public IP enabled
 - A Route Table that routes outbound traffic (`0.0.0.0/0`) to the Internet Gateway
-- A Security Group allowing inbound SSH (port **22**) and HTTP (port **80**)
+- A Security Group allowing inbound SSH (port **22**) and HTTP (port **8000**) and HTTP (port **3000**)
 - An EC2 Instance using a specified AMI, instance type, and with a public IP address assigned
 - An Output that shows the public IP of the EC2 instance
 
@@ -49,11 +52,19 @@ This Terraform configuration creates a simple AWS setup that includes:
    cd infra
 
 2. Change the directory to infra
-3. Initialize Terraform: terraform init
-4. Review the plan: terraform plan
-5. Apply the configuration to create resources in AWS: terraform apply
+3. Initialize Terraform: 
+   ```bash
+   terraform init
+4. Review the plan: 
+   ```bash
+   terraform plan
+5. Apply the configuration to create resources in AWS: 
+   ```bash
+   terraform apply
 
-6. To clean up (and stop incurring AWS costs), run: terraform destroy
+6. To clean up (and stop incurring AWS costs), run: 
+   ```bash
+   terraform destroy
 
 
 
