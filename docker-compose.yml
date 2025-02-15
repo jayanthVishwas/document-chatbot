@@ -2,23 +2,20 @@ version: '3.8'
 
 services:
   backend:
-    build: ./rag-pdf-chatbot-backend
-    container_name: chatbot-backend
+    build: ./backend
+    container_name: backend
     ports:
       - "8000:8000"
     volumes:
       - ./rag-pdf-chatbot-backend:/app
     env_file:
       - .env  # ✅ Load API keys from .env
-    depends_on:
-      - frontend
 
   frontend:
-    build: ./rag-pdf-chatbot-frontend
-    container_name: chatbot-frontend
+    build: ./frontend
+    container_name: frontend
     ports:
       - "3000:3000"
-    volumes:
-      - ./rag-pdf-chatbot-frontend:/app
+
     environment:
       - REACT_APP_BACKEND_URL=http://backend:8000  # ✅ Docker networking for backend

@@ -1,7 +1,6 @@
 # Ignore environment variables in backend
-rag-pdf-chatbot-backend/.env
 .env
-rag-pdf-chatbot-backend/__pycache__
-rag-pdf-chatbot-backend/node_modules
-rag-pdf-chatbot-frontend/node_modules
-rag-pdf-chatbot-frontend/build
+backend/node_modules
+backend/__pycache__
+frontend/node_modules
+frontend/build

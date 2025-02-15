@@ -13,6 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy remaining backend files
 COPY . .
 
+RUN python -m openai migrate
+
 # Expose the port FastAPI runs on
 EXPOSE 8000
 

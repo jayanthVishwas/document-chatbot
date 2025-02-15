@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
 import { MainContainer, ChatContainer, MessageList, Message, MessageInput, TypingIndicator } from '@chatscope/chat-ui-kit-react';
 
@@ -17,8 +17,8 @@ const Chatbot = () => {
   const [fileName, setFileName] = useState('');
   const ws = useRef(null);
 
-  // WebSocket Connection Handler
-  const connectWebSocket = () => {
+  // Wrap the function in useCallback to keep its reference stable
+  const connectWebSocket = useCallback(() => {
     console.log("Attempting to connect WebSocket...");
     ws.current = new WebSocket("ws://localhost:8000/ws");
 
@@ -27,10 +27,12 @@ const Chatbot = () => {
     ws.current.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        console.log("data from backend:", data);
         setMessages((prevMessages) => [
           ...prevMessages,
           {
             message: data.response,
+            sources: data.source || [],
             sentTime: "just now",
             sender: "ChatBot",
             style: { backgroundColor: "green" }
@@ -51,12 +53,12 @@ const Chatbot = () => {
         setTimeout(connectWebSocket, 5000);
       }
     };
-  };
+  }, []); // No dependencies needed as we're not using any external variables
 
   useEffect(() => {
     connectWebSocket();
     return () => ws.current?.close();
-  }, []);
+  }, [connectWebSocket]);
 
   // Handle Sending Messages
   const handleSend = async (message) => {
@@ -103,7 +105,7 @@ const Chatbot = () => {
     });
 
     try {
-      const response = await fetch("http://localhost:8000/upload_pdfs/", {
+      const response = await fetch("http://localhost/upload_pdfs/", {
         method: "POST",
         body: formData,
       });
@@ -134,7 +136,7 @@ const Chatbot = () => {
         <label 
           htmlFor="file-upload" 
           style={{ 
-            backgroundColor: "#007bff", 
+            backgroundColor: "#5c45db", 
             color: "white", 
             border: "none", 
             padding: "10px 20px", 
@@ -151,14 +153,14 @@ const Chatbot = () => {
         <button 
           onClick={handleFileUpload} 
           style={{ 
-            backgroundColor: "#007bff", 
+            backgroundColor: "#5c45db", 
             color: "white", 
             border: "none", 
             padding: "10px 20px", 
             borderRadius: "4px", 
             cursor: "pointer",
             width: "150px",
-            marginTop: "20px"
+            marginTop: "20px",
           }}
         >
           Submit
@@ -176,16 +178,30 @@ const Chatbot = () => {
                 typingIndicator={isTyping ? <TypingIndicator content="ChatBot is typing..." /> : null}
               >
                 {messages.map((message, i) => (
-                  <Message 
-                    key={i} 
-                    model={{ 
-                      message: message.message, 
-                      sentTime: message.sentTime, 
-                      sender: message.sender, 
-                      style: message.style 
-                    }} 
-                    className={message.sender === "user" ? "user-message" : "chatbot-message"} 
-                  />
+                  <div key={i}>
+                    <Message 
+                      model={{ 
+                        message: message.message, 
+                        sentTime: message.sentTime, 
+                        sender: message.sender, 
+                        style: message.style 
+                      }} 
+                      className={message.sender === "user" ? "user-message" : "chatbot-message"} 
+                    />
+                    {message.sources && message.sources.length > 0 && (
+                      <div 
+                      style={{ 
+                        fontSize: '0.8em', 
+                        color: '#555', 
+                        marginTop: '4px', 
+                        paddingLeft: message.sender === "ChatBot" ? "60px" : "0",
+                        border: '1px solid red' // temporary border for debugging
+                      }}
+                      >
+                        Sources: {message.sources.join(', ')}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </MessageList>
               <MessageInput placeholder="Your curiosity is my command..." onSend={handleSend} attachButton={false} />
